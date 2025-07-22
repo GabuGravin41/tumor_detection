@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brain Tumor Detection - AI-Powered Medical Imaging</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'medical-green': '#10B981',
+                        'medical-violet': '#8B5CF6',
+                        'deep-violet': '#7C3AED',
+                        'light-green': '#34D399',
+                        'dark-green': '#059669'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #10B981 0%, #8B5CF6 100%);
+        }
+        .card-gradient {
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+        }
+        .upload-area {
+            border: 2px dashed #8B5CF6;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #10B981;
+            background-color: #f0fdf4;
+        }
+        .upload-area.dragover {
+            border-color: #10B981;
+            background-color: #ecfdf5;
+        }
+        .result-card {
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-6 py-8">
+            <div class="text-center">
+                <h1 class="text-4xl md:text-5xl font-bold mb-4">
+                    🧠 Brain Tumor Detection
+                </h1>
+                <p class="text-xl text-green-100 max-w-2xl mx-auto">
+                    Advanced AI-powered medical imaging analysis for early detection and diagnosis
+                </p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-12">
+        <div class="flex gap-8">
+            <!-- Sidebar: always visible and working -->
+            <div class="w-80 flex-shrink-0">
+                <div class="card-gradient rounded-2xl shadow-xl p-6 sticky top-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">
+                        📋 Recent Analyses
+                    </h3>
+                    
+                    <!-- History List -->
+                    <div id="historyList" class="space-y-3 max-h-96 overflow-y-auto">
+                        <div class="text-center text-gray-500 py-8">
+                            <svg class="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <p>No analyses yet</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Refresh Button -->
+                    <button id="refreshHistoryBtn" class="w-full mt-4 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                        🔄 Refresh History
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Main Content Area -->
+            <div class="flex-1">
+                <div class="max-w-4xl mx-auto">
+            <!-- Upload Section -->
+            <div class="card-gradient rounded-2xl shadow-xl p-8 mb-8">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">
+                        Upload Brain MRI Scan
+                    </h2>
+                    <p class="text-gray-600 text-lg">
+                        Upload a brain MRI image to analyze for tumor detection
+                    </p>
+                </div>
+
+                <!-- Remove Model Selection -->
+                <!-- (No modelSelect dropdown here) -->
+
+                <!-- Upload Area -->
+                <div id="uploadArea" class="upload-area rounded-xl p-12 text-center cursor-pointer mb-6 relative">
+                    <!-- Default upload content -->
+                    <div id="uploadContent" class="mb-4">
+                        <svg class="w-16 h-16 mx-auto text-medical-violet" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        <h3 class="text-xl font-semibold text-gray-700 mb-2">
+                            Drop your image here
+                        </h3>
+                        <p class="text-gray-500 mb-4">
+                            or click to browse files
+                        </p>
+                        <p class="text-sm text-gray-400">
+                            Supports: JPEG, PNG, BMP (Max 10MB)
+                        </p>
+                    </div>
+                    
+                    <!-- Image preview (hidden by default) -->
+                    <div id="imagePreview" class="hidden">
+                        <div class="relative">
+                            <img id="uploadPreviewImage" class="w-full h-64 object-cover rounded-lg shadow-md" alt="Selected Image">
+                            <div class="absolute top-2 right-2">
+                                <button id="removeImageBtn" class="bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <p class="text-sm text-gray-600" id="fileName"></p>
+                            <p class="text-xs text-gray-400" id="fileSize"></p>
+                        </div>
+                    </div>
+                    
+                    <input type="file" id="imageInput" accept="image/*" class="hidden">
+                </div>
+
+                <!-- Upload Button -->
+                <div class="text-center">
+                    <button id="uploadBtn" disabled class="bg-gradient-to-r from-medical-green to-medical-violet text-white px-8 py-3 rounded-lg font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Analyze Image
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading Section -->
+            <div id="loadingSection" class="hidden card-gradient rounded-2xl shadow-xl p-8 mb-8">
+                <div class="text-center">
+                    <div class="loading-spinner w-16 h-16 border-4 border-medical-violet border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-2">
+                        Analyzing Image...
+                    </h3>
+                    <p class="text-gray-600">
+                        Our AI model is processing your brain MRI scan
+                    </p>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsSection" class="hidden">
+                <div class="result-card card-gradient rounded-2xl shadow-xl p-8 mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">
+                        Analysis Results
+                    </h2>
+                    
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <!-- Image Preview -->
+                        <div class="text-center">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-4">Uploaded Image</h3>
+                            <div class="bg-white rounded-lg p-4 shadow-md">
+                                <img id="previewImage" class="w-full h-64 object-cover rounded-lg" alt="Brain MRI">
+                            </div>
+                        </div>
+
+                        <!-- Heatmap Preview -->
+                        <div id="heatmapContainer" class="text-center hidden">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-4">AI Attention Heatmap</h3>
+                            <div class="bg-white rounded-lg p-4 shadow-md">
+                                <img id="heatmapImage" class="w-full h-64 object-cover rounded-lg" alt="AI Attention Heatmap">
+                                <p class="text-sm text-gray-600 mt-2">
+                                    <span id="heatmapLegend"></span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Results -->
+                        <div>
+                            <h3 class="text-xl font-semibold text-gray-700 mb-4">Detection Results</h3>
+                            
+                            <!-- Prediction -->
+                            <div class="bg-white rounded-lg p-6 shadow-md mb-4">
+                                <div class="flex items-center justify-between mb-4">
+                                    <span class="text-lg font-semibold text-gray-700">Prediction:</span>
+                                    <span id="predictionResult" class="text-xl font-bold"></span>
+                                </div>
+                                
+                                <!-- Confidence Bar -->
+                                <div class="mb-4">
+                                    <div class="flex justify-between text-sm text-gray-600 mb-2">
+                                        <span>Confidence:</span>
+                                        <span id="confidenceValue"></span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-3">
+                                        <div id="confidenceBar" class="h-3 rounded-full transition-all duration-1000"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Probability Breakdown -->
+                            <div class="bg-white rounded-lg p-6 shadow-md">
+                                <h4 class="text-lg font-semibold text-gray-700 mb-4">Probability Breakdown</h4>
+                                
+                                <!-- Brain Tumor Probability -->
+                                <div class="mb-4">
+                                    <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                        <span>Brain Tumor:</span>
+                                        <span id="tumorProb"></span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div id="tumorBar" class="h-2 rounded-full bg-red-500 transition-all duration-1000"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Healthy Probability -->
+                                <div>
+                                    <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                        <span>Healthy:</span>
+                                        <span id="healthyProb"></span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div id="healthyBar" class="h-2 rounded-full bg-green-500 transition-all duration-1000"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons: only show Segment Tumor and colorMapSelect after tumor classification/segmentation -->
+                    <div class="text-center mt-8 flex flex-wrap justify-center gap-4">
+                        <button id="newAnalysisBtn" class="bg-gradient-to-r from-medical-green to-medical-violet text-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">
+                            Analyze Another Image
+                        </button>
+                        <button id="downloadBtn" class="bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">
+                            Download Report
+                        </button>
+                        <button id="segmentBtn" class="bg-gradient-to-r from-red-500 to-pink-500 text-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 hidden">
+                            Segment Tumor
+                        </button>
+                        <select id="colorMapSelect" class="ml-4 px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-medical-violet text-lg hidden">
+                            <option value="green">Green (default)</option>
+                            <option value="red">Red</option>
+                            <option value="cyan">Cyan</option>
+                            <option value="magenta">Magenta</option>
+                            <option value="yellow">Yellow</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Section -->
+            <div id="errorSection" class="hidden card-gradient rounded-2xl shadow-xl p-8 mb-8">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-2">
+                        Analysis Failed
+                    </h3>
+                    <p id="errorMessage" class="text-gray-600 mb-4">
+                        An error occurred during analysis
+                    </p>
+                    <button id="retryBtn" class="bg-gradient-to-r from-medical-green to-medical-violet text-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8 mt-16">
+        <div class="container mx-auto px-6 text-center">
+            <p class="text-gray-400">
+                © 2024 Brain Tumor Detection AI. This tool is for educational and research purposes only.
+            </p>
+            <p class="text-sm text-gray-500 mt-2">
+                Always consult with qualified medical professionals for diagnosis and treatment.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const uploadArea = document.getElementById('uploadArea');
+        const uploadContent = document.getElementById('uploadContent');
+        const imagePreview = document.getElementById('imagePreview');
+        const uploadPreviewImage = document.getElementById('uploadPreviewImage');
+        const removeImageBtn = document.getElementById('removeImageBtn');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const imageInput = document.getElementById('imageInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const loadingSection = document.getElementById('loadingSection');
+        const resultsSection = document.getElementById('resultsSection');
+        const errorSection = document.getElementById('errorSection');
+        const previewImage = document.getElementById('previewImage');
+        const predictionResult = document.getElementById('predictionResult');
+        const confidenceValue = document.getElementById('confidenceValue');
+        const confidenceBar = document.getElementById('confidenceBar');
+        const tumorProb = document.getElementById('tumorProb');
+        const healthyProb = document.getElementById('healthyProb');
+        const tumorBar = document.getElementById('tumorBar');
+        const healthyBar = document.getElementById('healthyBar');
+        const newAnalysisBtn = document.getElementById('newAnalysisBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const retryBtn = document.getElementById('retryBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const historyList = document.getElementById('historyList');
+        const refreshHistoryBtn = document.getElementById('refreshHistoryBtn');
+        const heatmapContainer = document.getElementById('heatmapContainer');
+        const heatmapImage = document.getElementById('heatmapImage');
+        // Remove modelSelect and all references to it
+        const segmentBtn = document.getElementById('segmentBtn');
+        const colorMapSelect = document.getElementById('colorMapSelect');
+
+        let selectedFile = null;
+        let currentAnalysisId = null;
+
+        // Event Listeners
+        uploadArea.addEventListener('click', () => imageInput.click());
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleDrop);
+        imageInput.addEventListener('change', handleFileSelect);
+        uploadBtn.addEventListener('click', uploadImage);
+        newAnalysisBtn.addEventListener('click', resetForm);
+        retryBtn.addEventListener('click', resetForm);
+        removeImageBtn.addEventListener('click', removeSelectedImage);
+        refreshHistoryBtn.addEventListener('click', loadHistory);
+        downloadBtn.addEventListener('click', downloadReport);
+        // Remove modelSelect.addEventListener('change', updateModel);
+        segmentBtn.addEventListener('click', segmentTumor);
+        colorMapSelect.addEventListener('change', updateColorMap);
+
+        // Load history on page load
+        document.addEventListener('DOMContentLoaded', loadHistory);
+
+        // Drag and Drop Handlers
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                showError('Please select a valid image file.');
+                return;
+            }
+
+            // Validate file size (10MB limit)
+            if (file.size > 10 * 1024 * 1024) {
+                showError('File size must be less than 10MB.');
+                return;
+            }
+
+            console.log("File selected:", file.name, file.type, file.size);
+            selectedFile = file;
+            
+            // Show image preview in upload area
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                console.log("Image loaded in FileReader");
+                uploadPreviewImage.src = e.target.result;
+                previewImage.src = e.target.result; // Also set for results section
+                
+                // Force DOM update
+                setTimeout(() => {
+                    console.log("Showing image preview");
+                    // Show preview, hide upload content
+                    uploadContent.classList.add('hidden');
+                    imagePreview.classList.remove('hidden');
+                }, 100);
+            };
+            reader.readAsDataURL(file);
+
+            // Update file info
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+
+            // Enable upload button
+            uploadBtn.disabled = false;
+            uploadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+
+        async function uploadImage() {
+            if (!selectedFile && !uploadBtn.getAttribute('data-analysis-id')) {
+                showError('Please select an image first.');
+                return;
+            }
+
+            // Show loading
+            showLoading();
+
+            const formData = new FormData();
+            if (selectedFile) {
+                formData.append('image', selectedFile);
+            }
+            
+            // Handle reanalysis from sidebar
+            const analysisId = uploadBtn.getAttribute('data-analysis-id');
+            if (analysisId) {
+                console.log("Reanalyzing with analysis ID:", analysisId);
+                formData.append('analysis_id', analysisId);
+            }
+
+            try {
+                console.log("Sending classification request...");
+                // Always run classification first
+                const response = await fetch('/predict/', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log("Classification result:", result);
+                
+                showResults(result);
+                
+                // Refresh history after successful analysis
+                loadHistory();
+            } catch (error) {
+                console.error("Error during analysis:", error);
+                showError('An error occurred during analysis. Please try again.');
+            }
+            
+            // Reset reanalysis state
+            uploadBtn.removeAttribute('data-analysis-id');
+        }
+
+        function showLoading() {
+            hideAllSections();
+            loadingSection.classList.remove('hidden');
+        }
+
+        function showSegmentationResults(result) {
+            hideAllSections();
+            // Hide detection-specific results
+            document.querySelector('.result-card h3').textContent = 'Segmentation Results';
+            document.querySelector('.result-card h3').className = 'text-xl font-semibold text-gray-700 mb-4';
+            document.querySelector('.result-card .bg-white.rounded-lg.p-6.shadow-md.mb-4').style.display = 'none'; // Hide prediction/confidence
+            document.querySelector('.result-card .bg-white.rounded-lg.p-6.shadow-md').style.display = 'none'; // Hide probability breakdown
+            // Show overlay image in the heatmap container
+            heatmapImage.src = result.overlay_url;
+            heatmapContainer.classList.remove('hidden');
+            // Update legend with selected color
+            const selectedColorText = colorMapSelect.options[colorMapSelect.selectedIndex].text;
+            document.getElementById('heatmapLegend').innerHTML = `<span class="text-green-600 font-medium">🟩 ${selectedColorText}:</span> Tumor region (segmentation mask)`;
+            // Show tumor area if available
+            predictionResult.textContent = `Tumor Area: ${result.tumor_area} pixels`;
+            predictionResult.className = 'text-xl font-bold text-green-600';
+            // Show results section
+            resultsSection.classList.remove('hidden');
+            // Show both segment button and color picker
+            segmentBtn.classList.remove('hidden');
+            colorMapSelect.classList.remove('hidden');
+        }
+
+        function showResults(result) {
+            hideAllSections();
+            // Show all detection-specific fields
+            document.querySelector('.result-card h3').textContent = 'Detection Results';
+            document.querySelector('.result-card h3').className = 'text-xl font-semibold text-gray-700 mb-4';
+            document.querySelector('.result-card .bg-white.rounded-lg.p-6.shadow-md.mb-4').style.display = '';
+            document.querySelector('.result-card .bg-white.rounded-lg.p-6.shadow-md').style.display = '';
+            
+            // Handle heatmap display - show for all predictions now
+            if (result.heatmap_url) {
+                heatmapImage.src = result.heatmap_url;
+                heatmapContainer.classList.remove('hidden');
+                // Set legend based on prediction
+                const legendElement = document.getElementById('heatmapLegend');
+                if (result.prediction === 'Brain Tumor') {
+                    legendElement.innerHTML = '<span class="text-red-600 font-medium">🔴 Red/Yellow:</span> Areas the AI focused on for tumor detection';
+                } else {
+                    legendElement.innerHTML = '<span class="text-blue-600 font-medium">🔵 Blue/Cyan:</span> Areas the AI focused on for healthy tissue';
+                }
+            } else {
+                heatmapContainer.classList.add('hidden');
+            }
+            
+            // Set current analysis ID if available
+            if (result.analysis_id) {
+                currentAnalysisId = result.analysis_id;
+            }
+            
+            // Set prediction result
+            predictionResult.textContent = result.prediction;
+            predictionResult.className = result.prediction === 'Brain Tumor' 
+                ? 'text-xl font-bold text-red-600' 
+                : 'text-xl font-bold text-green-600';
+            
+            // Set confidence
+            const confidence = result.confidence.toFixed(1);
+            confidenceValue.textContent = `${confidence}%`;
+            confidenceBar.style.width = `${confidence}%`;
+            confidenceBar.className = result.prediction === 'Brain Tumor' 
+                ? 'h-3 rounded-full bg-red-500 transition-all duration-1000' 
+                : 'h-3 rounded-full bg-green-500 transition-all duration-1000';
+            
+            // Set probabilities
+            const tumorProbValue = result.probabilities['Brain Tumor'].toFixed(1);
+            const healthyProbValue = result.probabilities['Healthy'].toFixed(1);
+            tumorProb.textContent = `${tumorProbValue}%`;
+            healthyProb.textContent = `${healthyProbValue}%`;
+            tumorBar.style.width = `${tumorProbValue}%`;
+            healthyBar.style.width = `${healthyProbValue}%`;
+            
+            // Show results
+            resultsSection.classList.remove('hidden');
+            
+            // Show or hide Segment Tumor button and colorMapSelect based on prediction
+            if (result.prediction === 'Brain Tumor') {
+                segmentBtn.classList.remove('hidden');
+                colorMapSelect.classList.add('hidden'); // Only show color picker after segmentation
+            } else {
+                segmentBtn.classList.add('hidden');
+                colorMapSelect.classList.add('hidden');
+            }
+            
+            // Refresh history to show the new analysis
+            loadHistory();
+        }
+
+        function showError(message) {
+            hideAllSections();
+            errorMessage.textContent = message;
+            errorSection.classList.remove('hidden');
+        }
+
+        function hideAllSections() {
+            loadingSection.classList.add('hidden');
+            resultsSection.classList.add('hidden');
+            errorSection.classList.add('hidden');
+        }
+
+        function resetForm() {
+            hideAllSections();
+            removeSelectedImage();
+            // Disable Segment Tumor button on reset
+            segmentBtn.classList.add('hidden');
+            colorMapSelect.classList.add('hidden'); // Hide color map select on reset
+        }
+
+        function removeSelectedImage() {
+            selectedFile = null;
+            imageInput.value = '';
+            
+            // Hide preview, show upload content
+            imagePreview.classList.add('hidden');
+            uploadContent.classList.remove('hidden');
+            
+            // Clear images
+            uploadPreviewImage.src = '';
+            previewImage.src = '';
+            
+            // Disable upload button
+            uploadBtn.disabled = true;
+            uploadBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // History Functions
+        async function loadHistory() {
+            console.log("Loading history...");
+            try {
+                const response = await fetch('/history/');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log("History loaded:", data);
+                
+                if (data.history && Array.isArray(data.history)) {
+                    displayHistory(data.history);
+                } else {
+                    console.error('Invalid history data format:', data);
+                    displayHistory([]);
+                }
+            } catch (error) {
+                console.error('Error loading history:', error);
+                // Show empty state on error
+                displayHistory([]);
+            }
+        }
+
+        function displayHistory(history) {
+            console.log("Displaying history:", history);
+            
+            if (!history || history.length === 0) {
+                historyList.innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <svg class="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p>No analyses yet</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Create HTML for each history item
+            const historyHTML = history.map(item => {
+                // Ensure all required properties exist
+                const id = item.id || '';
+                const imageUrl = item.image_url || '';
+                const heatmapUrl = item.heatmap_url || '';
+                const filename = item.filename || 'Unnamed';
+                const createdAt = item.created_at || '';
+                const prediction = item.prediction || '';
+                const confidence = item.confidence || 0;
+                
+                // Build the HTML
+                return `
+                    <div class="bg-white rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer" 
+                         onclick="reanalysisFromSidebar('${id}', '${imageUrl}')">
+                        <div class="flex items-center space-x-3">
+                            <div class="relative">
+                                <img src="${imageUrl}" alt="Analysis" class="w-12 h-12 object-cover rounded-lg">
+                                ${heatmapUrl ? `<img src="${heatmapUrl}" alt="Heatmap" class="w-12 h-12 object-cover rounded-lg absolute inset-0 opacity-60">` : ''}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 truncate">${filename}</p>
+                                <p class="text-xs text-gray-500">${createdAt}</p>
+                                <div class="flex items-center space-x-2 mt-1">
+                                    <span class="text-xs font-medium ${prediction === 'Brain Tumor' ? 'text-red-600' : 'text-green-600'}">
+                                        ${prediction}
+                                    </span>
+                                    <span class="text-xs text-gray-500">${confidence ? confidence.toFixed(1) : 0}%</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col space-y-2">
+                                <button onclick="event.stopPropagation(); reanalysisFromSidebar('${id}', '${imageUrl}')" 
+                                        class="text-blue-600 hover:text-blue-800 text-sm font-medium" title="Reanalyze">
+                                    🔄
+                                </button>
+                                <button onclick="event.stopPropagation(); deleteAnalysis('${id}')" 
+                                        class="text-red-600 hover:text-red-800 text-sm font-medium" title="Delete">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Update the DOM
+            historyList.innerHTML = historyHTML;
+        }
+
+        window.reanalysisFromSidebar = function(analysisId, imageUrl) {
+            console.log("Reanalyzing from sidebar:", analysisId, imageUrl);
+            // Set the image preview in the upload area
+            uploadContent.classList.add('hidden');
+            imagePreview.classList.remove('hidden');
+            uploadPreviewImage.src = imageUrl;
+            previewImage.src = imageUrl;
+            
+            // Enable the upload button and set the analysis ID
+            selectedFile = null;
+            imageInput.value = '';
+            uploadBtn.disabled = false;
+            uploadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            uploadBtn.setAttribute('data-analysis-id', analysisId);
+        }
+
+        // Remove updateModel function
+        // function updateModel() {
+        //     // This function is not directly used for the upload button,
+        //     // but it can be used for other model-specific logic if needed.
+        //     // For now, it just logs the selected model.
+        //     console.log('Selected model:', modelSelect.value);
+        // }
+
+        async function segmentTumor() {
+            console.log("Segmenting tumor with ID:", currentAnalysisId);
+            if (!currentAnalysisId) {
+                showError('No analysis to segment.');
+                return;
+            }
+            
+            showLoading();
+            
+            const formData = new FormData();
+            formData.append('analysis_id', currentAnalysisId);
+            formData.append('color_map', colorMapSelect.value);
+            
+            try {
+                console.log("Sending segmentation request with color:", colorMapSelect.value);
+                console.log("FormData contents:", [...formData.entries()]);
+                
+                const response = await fetch('/segment/', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error("Server error:", response.status, errorText);
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log("Segmentation result:", result);
+                
+                showSegmentationResults(result);
+            } catch (error) {
+                console.error("Error during segmentation:", error);
+                showError('An error occurred during segmentation. Please try again.');
+            }
+        }
+
+        function updateColorMap() {
+            console.log("Updating color map to:", colorMapSelect.value);
+            if (!currentAnalysisId) return;
+            segmentTumor(); // Re-run segmentation with new color
+        }
+
+        function downloadReport() {
+            if (!currentAnalysisId) {
+                showError('No analysis to download.');
+                return;
+            }
+            
+            // Redirect to download endpoint
+            window.location.href = `/report/${currentAnalysisId}/`;
+        }
+
+        async function deleteAnalysis(analysisId) {
+            if (!confirm('Are you sure you want to delete this analysis?')) {
+                return;
+            }
+            
+            try {
+                console.log("Deleting analysis:", analysisId);
+                const response = await fetch(`/delete/${analysisId}/`, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log("Delete result:", result);
+                
+                // Refresh the history list
+                loadHistory();
+            } catch (error) {
+                console.error("Error deleting analysis:", error);
+                alert('Failed to delete the analysis. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html> 
