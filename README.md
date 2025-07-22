@@ -45,13 +45,13 @@ A Django-based web application for brain tumor detection and segmentation using 
 
 **Classification Model (PyTorch)**
 1. Download the classification model from Kaggle:
-   - Dataset: [Brain Tumor Classification Model](https://www.kaggle.com/datasets/your-dataset-url)
+   - Dataset: [Brain Tumor Classification Model](https://www.kaggle.com/code/daltongabrielomondi/brain-tumor-detection-by-cnn-pytorch)
    - Download `Brain_Tumor_model.pt`
    - Place it in: `classification_brain_tumor_model/Brain_Tumor_model.pt`
 
 **Segmentation Model (Keras)**
 1. Download the segmentation model from Kaggle:
-   - Dataset: [Brain Tumor Segmentation Model](https://www.kaggle.com/datasets/your-dataset-url)
+   - Dataset: [Brain Tumor Segmentation Model](https://www.kaggle.com/code/daltongabrielomondi/brain-tumor-segmentation-unet-dice-coef-89-6)
    - Download the `.h5` model file
    - Place it in: `segmentation_braintumor_model/model.h5`
 
